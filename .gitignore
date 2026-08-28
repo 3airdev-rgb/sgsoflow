@@ -1,0 +1,36 @@
+node_modules/
+.next/
+coverage/
+playwright-report/
+test-results/
+.vitest/
+
+# Environment files and secrets (safe example remains versioned)
+.env
+.env.*
+!.env.example
+.secrets/
+credentials/
+*.credentials.json
+service-account*.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Logs, caches and temporary artifacts
+*.log
+logs/
+.cache/
+tmp/
+temp/
+*.tmp
+*.temp
+*.tsbuildinfo
+
+# Local OS/editor artifacts
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/

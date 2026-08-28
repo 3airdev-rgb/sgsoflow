@@ -1,0 +1,1 @@
+export default function SettingsPage() { return <><p className="eyebrow">Administração</p><h1>Configurações</h1><div className="card"><p className="muted">Área estrutural reservada à administração de acesso e contexto.</p></div></>; }

@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EntityStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum SystemRole {
+  SYSTEM_ADMIN
+  ORGANIZATION_ADMIN
+  AIRPORT_ADMIN
+  USER
+}
+
+model User {
+  id String @id @default(uuid()) @db.Uuid
+  name String @db.VarChar(160)
+  email String @unique @db.VarChar(254)
+  passwordHash String @map("password_hash") @db.VarChar(255)
+  status EntityStatus @default(ACTIVE)
+  mfaEnrolledAt DateTime? @map("mfa_enrolled_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  memberships Membership[]
+  sessions Session[]
+  auditLogs AuditLog[]
+  @@map("users")
+}
+
+model Organization {
+  id String @id @default(uuid()) @db.Uuid
+  legalName String @map("legal_name") @db.VarChar(200)
+  tradeName String? @map("trade_name") @db.VarChar(200)
+  status EntityStatus @default(ACTIVE)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  airports Airport[]
+  memberships Membership[]
+  sessions Session[]
+  auditLogs AuditLog[]
+  @@index([status, deletedAt])
+  @@map("organizations")
+}
+
+model Airport {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  name String @db.VarChar(200)
+  icaoCode String? @map("icao_code") @db.VarChar(4)
+  iataCode String? @map("iata_code") @db.VarChar(3)
+  city String @db.VarChar(120)
+  state String @db.VarChar(2)
+  country String @default("BR") @db.VarChar(2)
+  status EntityStatus @default(ACTIVE)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  accesses AirportAccess[]
+  sessions Session[]
+  auditLogs AuditLog[]
+  @@unique([organizationId, icaoCode])
+  @@unique([organizationId, iataCode])
+  @@index([organizationId, status, deletedAt])
+  @@map("airports")
+}
+
+model Membership {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  role SystemRole @default(USER)
+  status EntityStatus @default(ACTIVE)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  airportAccesses AirportAccess[]
+  @@unique([userId, organizationId])
+  @@index([organizationId, status, deletedAt])
+  @@map("memberships")
+}
+
+model AirportAccess {
+  id String @id @default(uuid()) @db.Uuid
+  membershipId String @map("membership_id") @db.Uuid
+  airportId String @map("airport_id") @db.Uuid
+  role SystemRole @default(USER)
+  status EntityStatus @default(ACTIVE)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Restrict)
+  airport Airport @relation(fields: [airportId], references: [id], onDelete: Restrict)
+  @@unique([membershipId, airportId])
+  @@index([airportId, status, deletedAt])
+  @@map("airport_accesses")
+}
+
+model Session {
+  id String @id @default(uuid()) @db.Uuid
+  tokenHash String @unique @map("token_hash") @db.Char(64)
+  userId String @map("user_id") @db.Uuid
+  activeOrganizationId String? @map("active_organization_id") @db.Uuid
+  activeAirportId String? @map("active_airport_id") @db.Uuid
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastSeenAt DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeOrganization Organization? @relation(fields: [activeOrganizationId], references: [id], onDelete: SetNull)
+  activeAirport Airport? @relation(fields: [activeAirportId], references: [id], onDelete: SetNull)
+  @@index([userId, expiresAt])
+  @@map("sessions")
+}
+
+model AuditLog {
+  id String @id @default(uuid()) @db.Uuid
+  timestamp DateTime @default(now()) @db.Timestamptz(6)
+  userId String? @map("user_id") @db.Uuid
+  organizationId String? @map("organization_id") @db.Uuid
+  airportId String? @map("airport_id") @db.Uuid
+  action String @db.VarChar(100)
+  entityType String @map("entity_type") @db.VarChar(100)
+  entityId String? @map("entity_id") @db.VarChar(100)
+  previousValue Json? @map("previous_value")
+  newValue Json? @map("new_value")
+  metadata Json?
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  airport Airport? @relation(fields: [airportId], references: [id], onDelete: Restrict)
+  @@index([organizationId, timestamp])
+  @@index([airportId, timestamp])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}

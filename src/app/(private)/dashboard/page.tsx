@@ -1,0 +1,2 @@
+import { requirePageSession } from "@/server/auth/session";
+export default async function DashboardPage() { const session = await requirePageSession(); return <><p className="eyebrow">Etapa 01 · Fundação</p><h1>Dashboard</h1><div className="card"><h2>Bem-vindo, {session.user.name}</h2><p className="muted">A estrutura administrativa está pronta. Nenhum indicador ou módulo funcional de SGSO foi incluído nesta etapa.</p></div></>; }
