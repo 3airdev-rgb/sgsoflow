@@ -1,77 +1,85 @@
 # Estado de desenvolvimento
 
-## ETAPA ATUAL: 01
+## ETAPA ATUAL: 02
 
 ## STATUS
 
-**B — CONCLUÍDA COM VALIDAÇÃO EXTERNA PENDENTE.**
+## ETAPA 02 — APROVADA
 
-**ETAPA 01 aprovada como baseline técnica.** O checkpoint Git foi criado na branch `main` com a fundação validada, sem funcionalidades da Etapa 02.
+**B — CONCLUÍDA COM VALIDAÇÃO EXTERNA POSTGRESQL PENDENTE.**
+
+A implementação e a auditoria normativa da Etapa 02 estão concluídas sobre a baseline aprovada `bdecfa136ca2dd38bf5e81e7ca91756acd2f8861`. Este documento integra o checkpoint Git anterior ao início de qualquer Etapa 03.
 
 ### VALIDADO
 
 - Schema Prisma válido e Prisma Client gerado.
-- Coerência estática entre schema e migration: 7 tabelas, 11 foreign keys e 14 índices/constraints de unicidade correspondentes.
-- Trigger PostgreSQL append-only do Audit Log presente na migration.
-- 11 testes unitários/integração aprovados.
-- 1 teste E2E estrutural Playwright/Chromium aprovado.
+- Migration incremental revisada estaticamente, sem alteração da migration da Etapa 01.
+- Regulatory Applicability Engine `1.0.0` com condições JSON seguras, explicabilidade e `REVIEW_REQUIRED`.
+- 39/39 testes unitários e de integração isolada aprovados, incluindo T01–T17 e auditoria de precedência A–G.
+- Auditoria normativa concluída para as sete seções autorizadas do RBAC 153 EMD 11.
+- Precedência SGSO, uso privativo, separação entre regime exigido e situação declarada e salvaguarda militar verificados.
+- 1/1 E2E estrutural Playwright/Chromium aprovado.
 - Lint, typecheck e build de produção aprovados.
-- Revisões de multi-tenancy e Audit Log concluídas sem vulnerabilidade comprovada.
+- Multi-tenancy e autorização revisados para Organization → Airport → RegulatoryProfile/Assessment.
+- Audit Log server-side para perfil, ativação, supersession, catálogo, regras e assessments.
+- `docs/TRACEABILITY.md` preenchido para os RFs e RNFs desta etapa.
 
 ### PENDENTE POR LIMITAÇÃO DO AMBIENTE
 
-- **Pendente: aplicação da migration contra instância PostgreSQL real.** O host não possui PostgreSQL nem Docker; `prisma migrate deploy` e `prisma migrate status` não conseguiram conectar a `127.0.0.1:5432`.
-- Validação E2E autenticada (login real, área protegida e seletores) depende de PostgreSQL com migration e seed aplicados. O Chromium está funcional e o E2E estrutural foi executado.
+- **Pendente: aplicação das migrations contra instância PostgreSQL real.** Não há serviço na porta 5432 nem Docker neste host.
+- **Pendente: validação integrada PostgreSQL de migration, seed, perfil, ativação, avaliação, histórico, triggers e Audit Log.**
+- **Pendente: E2E autenticado de Configurações → Perfil Regulatório → criação → ativação → avaliação.** O Chromium está funcional, mas o fluxo depende de PostgreSQL migrado e seedado.
 
-## FUNCIONALIDADES IMPLEMENTADAS
+## ETAPA 02 — IMPLEMENTADO
 
-- Autenticação por senha, sessão opaca segura, logout e proteção server-side.
-- Multi-tenancy Organization → Airport com Membership e AirportAccess.
-- RBAC técnico centralizado e permissions reutilizáveis.
-- Seletor autorizado e auditado de organização/aeródromo ativo.
-- Audit Log backend append-only.
-- Soft delete estrutural e tratamento HTTP consistente de erros.
-- Layout mínimo com Dashboard e Configurações.
+- Perfil regulatório versionado por aeródromo, com estados `DRAFT`, `ACTIVE` e `SUPERSEDED`.
+- Fonte, requisito e regra normativa modelados separadamente.
+- Assessments e itens históricos imutáveis, com versão do motor e da regra.
+- Regimes `SGSO`, `PGSO`, `CRITICAL_SAFETY_ASPECTS` e `REVIEW_REQUIRED`.
+- Seed controlado do RBAC 153 EMD 11 para 153.51, 153.53, 153.55, 153.57, 153.59, 153.63 e 153.73.
+- Interface em Configurações → Perfil Regulatório.
+- APIs protegidas para listar/criar/ativar perfis e executar/consultar assessments.
+- Serviço de catálogo restrito a `SYSTEM_ADMIN`, com versionamento de regras e auditoria.
 
-## MIGRATIONS CRIADAS
+## MIGRATIONS
 
-- `20260828170000_stage_01_foundation`: enums, 7 tabelas, FKs, índices, constraints e trigger append-only.
+- `20260828170000_stage_01_foundation`: fundação, sete tabelas e Audit Log append-only.
+- `20260828220000_stage_02_regulatory_engine`: seis entidades regulatórias, enums, FKs compostas, índices, unicidade de perfil ativo, constraints temporais e triggers de imutabilidade.
 
-## TESTES EXISTENTES
+## TESTES
 
-- Autenticação válida e inválida.
-- Organization e Airport autorizados.
-- Bloqueios cross-tenant e por manipulação de IDs.
-- Mudança autorizada/não autorizada de contexto.
-- Criação de Audit Log no login e na troca de contexto.
-- Validação Zod de User, Organization e Airport.
-- E2E estrutural da página de login (aprovado em Chromium).
+- Etapa 01 preservada: autenticação, contexto, autorização, validação e Audit Log.
+- Etapa 02: T01–T17 obrigatórios, condição insegura, precedência A–G, uso privativo e separação entre regime exigido e situação declarada.
+- Total atual: 39 testes unitários/integração isolada e 1 E2E estrutural.
+- Resultado: 39/39 e 1/1 aprovados.
 
-## DECISÕES ARQUITETURAIS
+## SEGURANÇA E INTEGRIDADE
 
-- User sem `organizationId`; associações representam escopo e role.
-- Autenticação independente das policies de autorização.
-- Sessão em banco com token SHA-256 e cookie `httpOnly`.
-- Roles de sistema separadas de futuras autoridades regulamentares.
-- PostgreSQL é o único banco de produção; testes de serviços usam doubles isolados.
+- IDs do frontend não provam autorização; serviços repetem sessão, Membership, Organization e Airport.
+- Queries de perfil/assessment combinam `organizationId`, `airportId` e IDs do recurso.
+- FK composta impede assessment ligado a perfil de outro aeródromo.
+- FK composta impede item ligado a regra de outro requisito.
+- Somente administradores compatíveis gerenciam perfis/assessments; somente `SYSTEM_ADMIN` gerencia catálogo/regras.
+- Audit Log e assessments não possuem API de exclusão; triggers PostgreSQL impedem mutação direta comum.
 
-## PENDÊNCIAS
+## DÍVIDAS E LIMITAÇÕES
 
-- Aplicar e verificar a migration em PostgreSQL real conforme `docs/POSTGRES_VALIDATION.md`.
-- Executar E2E autenticado de login, área protegida, seleção de organização/aeródromo e rejeição cross-tenant após disponibilizar PostgreSQL com seed.
-- MFA, recuperação de senha, rate limiting distribuído e administração visual de acessos.
+- Validação real das duas migrations e do seed no PostgreSQL.
+- E2E autenticado completo com banco.
+- A configuração `package.json#prisma` emite aviso de depreciação para Prisma 7; não afeta Prisma 6.14.
+- A condição militar/compartilhada é uma salvaguarda decisória do produto que exige revisão das condições cumulativas do RBAC 153.5(a)(2), não uma isenção automática.
+- O catálogo permanece limitado às sete seções autorizadas nesta etapa.
 
 ## ETAPA 01 — CHECKPOINT
 
-- **Checkpoint Git:** repositório inicializado na branch `main`; a baseline está registrada no commit com mensagem `chore: establish approved stage 01 foundation baseline` (hash consultável com `git rev-parse HEAD`).
-- **Migration existente:** `20260828170000_stage_01_foundation`.
-- **Entidades:** `User`, `Organization`, `Airport`, `Membership`, `AirportAccess`, `Session` e `AuditLog`; enums `EntityStatus` e `SystemRole`.
-- **Testes existentes:** 11 unitários/integração e 1 E2E estrutural.
-- **Testes aprovados:** 11/11 unitários/integração; 1/1 E2E Playwright/Chromium.
-- **Limitações ambientais:** ausência de PostgreSQL/Docker impede aplicação real da migration, seed e E2E autenticado.
-- **Dívidas técnicas conhecidas:** MFA, recuperação de senha, rate limiting distribuído, UI de administração de acessos e cobertura E2E autenticada com banco real.
-- **Fora do escopo:** classificação regulatória e todos os módulos funcionais de SGSO, inclusive Política e Objetivos, Safety Reporting, perigos, GRSO, AISO, PESO, garantia, auditorias, PISOA, promoção, change management e compliance matrix.
+- Commit aprovado: `bdecfa136ca2dd38bf5e81e7ca91756acd2f8861`.
+- Branch/remote: `main` → `origin/main`, [repositório oficial](https://github.com/3airdev-rgb/sgsoflow.git).
+- Classificação preservada: **B — concluída com validação externa PostgreSQL pendente**.
+- Migration: `20260828170000_stage_01_foundation`.
+- Entidades: `User`, `Organization`, `Airport`, `Membership`, `AirportAccess`, `Session` e `AuditLog`.
 
-## PRÓXIMA ETAPA PREVISTA
+## CONTROLE DE ESCOPO
 
-Etapa 02, somente após instrução explícita. Não iniciada.
+Não foram implementados Política de Segurança Operacional, objetivos de Safety, MGSO, Safety Reporting, investigações, perigos, GRSO, matriz de risco, AISO, PESO, indicadores, relatórios, auditorias SGSO, CSO, PISOA, treinamentos, promoção, Management of Change, Compliance Matrix completa ou IA.
+
+Não iniciar a Etapa 03 sem instrução explícita e sem checkpoint aprovado da Etapa 02.

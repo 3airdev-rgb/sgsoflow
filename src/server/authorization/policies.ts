@@ -4,13 +4,15 @@ import { ForbiddenError } from "@/server/errors";
 export type AirportGrant = { airportId: string; organizationId: string; role: SystemRole };
 export type OrganizationGrant = { organizationId: string; role: SystemRole; airports: AirportGrant[] };
 export type AuthorizationContext = { userId: string; organizations: OrganizationGrant[] };
-export type Permission = "organization:read" | "organization:manage" | "airport:read" | "airport:manage" | "context:switch";
+export type Permission =
+  | "organization:read" | "organization:manage" | "airport:read" | "airport:manage" | "context:switch"
+  | "regulatory:read" | "regulatory:profile:manage" | "regulatory:rules:manage" | "regulatory:assess";
 
 const rolePermissions: Record<SystemRole, ReadonlySet<Permission>> = {
-  SYSTEM_ADMIN: new Set(["organization:read", "organization:manage", "airport:read", "airport:manage", "context:switch"]),
-  ORGANIZATION_ADMIN: new Set(["organization:read", "organization:manage", "airport:read", "airport:manage", "context:switch"]),
-  AIRPORT_ADMIN: new Set(["organization:read", "airport:read", "airport:manage", "context:switch"]),
-  USER: new Set(["organization:read", "airport:read", "context:switch"]),
+  SYSTEM_ADMIN: new Set(["organization:read", "organization:manage", "airport:read", "airport:manage", "context:switch", "regulatory:read", "regulatory:profile:manage", "regulatory:rules:manage", "regulatory:assess"]),
+  ORGANIZATION_ADMIN: new Set(["organization:read", "organization:manage", "airport:read", "airport:manage", "context:switch", "regulatory:read", "regulatory:profile:manage", "regulatory:assess"]),
+  AIRPORT_ADMIN: new Set(["organization:read", "airport:read", "airport:manage", "context:switch", "regulatory:read", "regulatory:profile:manage", "regulatory:assess"]),
+  USER: new Set(["organization:read", "airport:read", "context:switch", "regulatory:read"]),
 };
 
 export function requireOrganizationAccess(ctx: AuthorizationContext, organizationId: string, permission: Permission = "organization:read") {

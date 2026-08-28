@@ -1,1 +1,3 @@
-export default function SettingsPage() { return <><p className="eyebrow">Administração</p><h1>Configurações</h1><div className="card"><p className="muted">Área estrutural reservada à administração de acesso e contexto.</p></div></>; }
+import Link from "next/link";
+
+export default function SettingsPage() { return <><p className="eyebrow">Administração</p><h1>Configurações</h1><div className="card"><h2>Perfil Regulatório</h2><p className="muted">Mantenha versões do perfil regulatório do aeródromo e execute avaliações explicáveis de aplicabilidade.</p><Link href="/settings/regulatory-profile">Abrir Perfil Regulatório</Link></div></>; }

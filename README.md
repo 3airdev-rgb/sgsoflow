@@ -1,6 +1,6 @@
-# Aero SGSO — Fundação técnica (Etapa 01)
+# SGSOFlow — Perfil regulatório e motor de aplicabilidade (Etapa 02)
 
-Fundação multi-tenant para um futuro Micro SaaS de gerenciamento da segurança operacional de aeródromos brasileiros. Esta entrega contém apenas autenticação, autorização, tenant/contexto, entidades estruturantes, Audit Log e interface administrativa mínima. Nenhum módulo funcional de SGSO foi antecipado.
+Micro SaaS multi-tenant para gerenciamento da segurança operacional de aeródromos brasileiros. Sobre a fundação aprovada da Etapa 01, esta entrega adiciona perfil regulatório versionado, catálogo normativo controlado, regras seguras e avaliações explicáveis. Nenhum processo funcional de SGSO/PGSO foi antecipado.
 
 ## Stack
 
@@ -41,16 +41,17 @@ pnpm test:e2e
 - `src/server/authorization/`: policies centrais de RBAC e escopo de tenant/aeródromo.
 - `src/server/audit/`: gravação backend de eventos append-only.
 - `src/server/context/`: mudança transacional e auditada do contexto ativo.
+- `src/server/regulatory/`: motor, versionamento, catálogo e serviços regulatórios.
 - `src/server/validation/`: contratos Zod.
 - `tests/`: testes unitários/integração isolada e E2E estrutural.
 - `docs/`: arquitetura e estado de desenvolvimento.
 
 ## Banco e migrations
 
-`DATABASE_URL` deve apontar para PostgreSQL. Em desenvolvimento, crie novas migrations com `pnpm db:migrate:dev --name descricao`; em deploy, use `pnpm db:migrate`. A migration inicial inclui UUIDs, FKs, índices, unicidades compostas e trigger que impede `UPDATE`/`DELETE` em `audit_logs`.
+`DATABASE_URL` deve apontar para PostgreSQL. Em desenvolvimento, crie novas migrations com `pnpm db:migrate:dev --name descricao`; em deploy, use `pnpm db:migrate`. As migrations incluem UUIDs, FKs, índices, unicidades temporais e triggers que protegem Audit Log e assessments históricos contra `UPDATE`/`DELETE`.
 
 ## Segurança
 
 As APIs nunca confiam no tenant vindo do cliente: recuperam a identidade pela sessão, constroem grants a partir das associações ativas e aplicam policies centrais. Consultas a aeródromos combinam IDs autorizados e `organizationId`, bloqueando enumeração/manipulação cross-tenant. Autenticação e autorização permanecem separadas. O campo `mfaEnrolledAt` é apenas um ponto de extensão; MFA não está implementado.
 
-Consulte [Arquitetura](docs/ARCHITECTURE.md), [Validação PostgreSQL externa](docs/POSTGRES_VALIDATION.md) e [Estado do desenvolvimento](docs/DEVELOPMENT_STATE.md).
+Consulte [Motor regulatório](docs/REGULATORY_ENGINE.md), [Rastreabilidade](docs/TRACEABILITY.md), [Arquitetura](docs/ARCHITECTURE.md), [Validação PostgreSQL externa](docs/POSTGRES_VALIDATION.md) e [Estado do desenvolvimento](docs/DEVELOPMENT_STATE.md).

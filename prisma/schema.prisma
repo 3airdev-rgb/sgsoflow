@@ -20,6 +20,45 @@ enum SystemRole {
   USER
 }
 
+enum RegulatoryProfileStatus {
+  DRAFT
+  ACTIVE
+  SUPERSEDED
+}
+
+enum AerodromeUse {
+  PUBLIC
+  PRIVATE
+}
+
+enum OperationalClass {
+  CLASS_I
+  CLASS_II
+  CLASS_III
+  CLASS_IV
+}
+
+enum RegulatoryRequirementType {
+  OBR
+  FC
+  REC
+  PROD
+}
+
+enum ApplicabilityStatus {
+  APPLICABLE
+  NOT_APPLICABLE
+  CONDITIONAL
+  REVIEW_REQUIRED
+}
+
+enum ManagementRegime {
+  SGSO
+  PGSO
+  CRITICAL_SAFETY_ASPECTS
+  REVIEW_REQUIRED
+}
+
 model User {
   id String @id @default(uuid()) @db.Uuid
   name String @db.VarChar(160)
@@ -33,6 +72,8 @@ model User {
   memberships Membership[]
   sessions Session[]
   auditLogs AuditLog[]
+  regulatoryProfilesCreated RegulatoryProfile[] @relation("RegulatoryProfileCreator")
+  applicabilityAssessments ApplicabilityAssessment[] @relation("AssessmentEvaluator")
   @@map("users")
 }
 
@@ -69,6 +110,8 @@ model Airport {
   accesses AirportAccess[]
   sessions Session[]
   auditLogs AuditLog[]
+  regulatoryProfiles RegulatoryProfile[]
+  applicabilityAssessments ApplicabilityAssessment[]
   @@unique([organizationId, icaoCode])
   @@unique([organizationId, iataCode])
   @@index([organizationId, status, deletedAt])
@@ -144,4 +187,133 @@ model AuditLog {
   @@index([airportId, timestamp])
   @@index([entityType, entityId])
   @@map("audit_logs")
+}
+
+model RegulatoryProfile {
+  id String @id @default(uuid()) @db.Uuid
+  airportId String @map("airport_id") @db.Uuid
+  version Int
+  effectiveFrom DateTime @map("effective_from") @db.Date
+  effectiveTo DateTime? @map("effective_to") @db.Date
+  status RegulatoryProfileStatus @default(DRAFT)
+  aerodromeUse AerodromeUse? @map("aerodrome_use")
+  operationalClass OperationalClass? @map("operational_class")
+  hasOperationalCertificate Boolean? @map("has_operational_certificate")
+  isMilitarySharedAerodrome Boolean? @map("is_military_shared_aerodrome")
+  certificateNumber String? @map("certificate_number") @db.VarChar(80)
+  operatesRegularRBAC121 Boolean? @map("operates_regular_rbac_121")
+  operatesRegularRBAC135 Boolean? @map("operates_regular_rbac_135")
+  hasSGSO Boolean? @map("has_sgso")
+  hasPGSO Boolean? @map("has_pgso")
+  regulatoryNotes String? @map("regulatory_notes") @db.Text
+  createdBy String @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  airport Airport @relation(fields: [airportId], references: [id], onDelete: Restrict)
+  creator User @relation("RegulatoryProfileCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  assessments ApplicabilityAssessment[]
+  @@unique([airportId, version])
+  @@unique([id, airportId])
+  @@index([airportId, status, effectiveFrom])
+  @@index([airportId, effectiveFrom, effectiveTo])
+  @@map("regulatory_profiles")
+}
+
+model RegulatorySource {
+  id String @id @default(uuid()) @db.Uuid
+  authority String @db.VarChar(80)
+  regulation String @db.VarChar(80)
+  amendment String? @db.VarChar(40)
+  revision String? @db.VarChar(40)
+  title String @db.VarChar(240)
+  effectiveFrom DateTime @map("effective_from") @db.Date
+  effectiveTo DateTime? @map("effective_to") @db.Date
+  status EntityStatus @default(ACTIVE)
+  officialReference String? @map("official_reference") @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  requirements RegulatoryRequirement[]
+  @@unique([authority, regulation, amendment, revision])
+  @@index([status, effectiveFrom, effectiveTo])
+  @@map("regulatory_sources")
+}
+
+model RegulatoryRequirement {
+  id String @id @default(uuid()) @db.Uuid
+  regulatorySourceId String @map("regulatory_source_id") @db.Uuid
+  section String @db.VarChar(40)
+  subsection String? @db.VarChar(80)
+  title String @db.VarChar(240)
+  summary String @db.Text
+  requirementType RegulatoryRequirementType @map("requirement_type")
+  status EntityStatus @default(ACTIVE)
+  effectiveFrom DateTime @map("effective_from") @db.Date
+  effectiveTo DateTime? @map("effective_to") @db.Date
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  regulatorySource RegulatorySource @relation(fields: [regulatorySourceId], references: [id], onDelete: Restrict)
+  rules ApplicabilityRule[]
+  assessmentItems ApplicabilityAssessmentItem[]
+  @@unique([regulatorySourceId, section, subsection])
+  @@index([status, effectiveFrom, effectiveTo])
+  @@map("regulatory_requirements")
+}
+
+model ApplicabilityRule {
+  id String @id @default(uuid()) @db.Uuid
+  regulatoryRequirementId String @map("regulatory_requirement_id") @db.Uuid
+  version Int
+  status EntityStatus @default(ACTIVE)
+  conditions Json
+  resultWhenMatched ApplicabilityStatus @map("result_when_matched")
+  managementRegime ManagementRegime? @map("management_regime")
+  rationaleTemplate String @map("rationale_template") @db.Text
+  effectiveFrom DateTime @map("effective_from") @db.Date
+  effectiveTo DateTime? @map("effective_to") @db.Date
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  regulatoryRequirement RegulatoryRequirement @relation(fields: [regulatoryRequirementId], references: [id], onDelete: Restrict)
+  assessmentItems ApplicabilityAssessmentItem[]
+  @@unique([regulatoryRequirementId, version])
+  @@unique([id, regulatoryRequirementId])
+  @@index([status, effectiveFrom, effectiveTo])
+  @@map("applicability_rules")
+}
+
+model ApplicabilityAssessment {
+  id String @id @default(uuid()) @db.Uuid
+  airportId String @map("airport_id") @db.Uuid
+  regulatoryProfileId String @map("regulatory_profile_id") @db.Uuid
+  evaluatedAt DateTime @map("evaluated_at") @db.Timestamptz(6)
+  evaluatedBy String @map("evaluated_by") @db.Uuid
+  engineVersion String @map("engine_version") @db.VarChar(20)
+  managementRegime ManagementRegime @map("management_regime")
+  overallResult ApplicabilityStatus @map("overall_result")
+  rationale String @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  airport Airport @relation(fields: [airportId], references: [id], onDelete: Restrict)
+  regulatoryProfile RegulatoryProfile @relation(fields: [regulatoryProfileId, airportId], references: [id, airportId], onDelete: Restrict)
+  evaluator User @relation("AssessmentEvaluator", fields: [evaluatedBy], references: [id], onDelete: Restrict)
+  items ApplicabilityAssessmentItem[]
+  @@index([airportId, evaluatedAt])
+  @@index([regulatoryProfileId])
+  @@map("applicability_assessments")
+}
+
+model ApplicabilityAssessmentItem {
+  id String @id @default(uuid()) @db.Uuid
+  applicabilityAssessmentId String @map("applicability_assessment_id") @db.Uuid
+  regulatoryRequirementId String @map("regulatory_requirement_id") @db.Uuid
+  applicabilityRuleId String? @map("applicability_rule_id") @db.Uuid
+  ruleVersion Int? @map("rule_version")
+  applicabilityStatus ApplicabilityStatus @map("applicability_status")
+  rationale String @db.Text
+  evaluationMetadata Json @map("evaluation_metadata")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  assessment ApplicabilityAssessment @relation(fields: [applicabilityAssessmentId], references: [id], onDelete: Restrict)
+  regulatoryRequirement RegulatoryRequirement @relation(fields: [regulatoryRequirementId], references: [id], onDelete: Restrict)
+  applicabilityRule ApplicabilityRule? @relation(fields: [applicabilityRuleId, regulatoryRequirementId], references: [id, regulatoryRequirementId], onDelete: Restrict)
+  @@index([applicabilityAssessmentId])
+  @@index([regulatoryRequirementId])
+  @@map("applicability_assessment_items")
 }
