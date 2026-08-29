@@ -2,8 +2,10 @@ import { db } from "@/server/db";
 import { requireAirportAccess, requireOrganizationAccess, type AuthorizationContext } from "@/server/authorization/policies";
 import { NotFoundError } from "@/server/errors";
 import { recordAuditEvent } from "@/server/audit/service";
+import { assertNotLocalPreviewMutation } from "@/server/local-preview";
 
 export async function switchContext(input: { sessionId: string; organizationId: string; airportId: string | null; authz: AuthorizationContext }) {
+  assertNotLocalPreviewMutation({ id: input.sessionId, userId: input.authz.userId });
   requireOrganizationAccess(input.authz, input.organizationId, "context:switch");
   if (input.airportId) requireAirportAccess(input.authz, input.organizationId, input.airportId, "context:switch");
   const session = await db.session.findUnique({ where: { id: input.sessionId } });

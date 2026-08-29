@@ -4,6 +4,7 @@ import { recordAuditEvent } from "@/server/audit/service";
 import { requireOrganizationAccess, type AuthorizationContext } from "@/server/authorization/policies";
 import { NotFoundError } from "@/server/errors";
 import { conditionSchema } from "./engine";
+import { assertNotLocalPreviewMutation } from "@/server/local-preview";
 
 type RequirementInput = {
   id?: string;
@@ -19,6 +20,7 @@ type RequirementInput = {
 };
 
 export async function saveRegulatoryRequirement(input: { authz: AuthorizationContext; organizationId: string; userId: string; requirement: RequirementInput }) {
+  assertNotLocalPreviewMutation({ userId: input.authz.userId });
   requireOrganizationAccess(input.authz, input.organizationId, "regulatory:rules:manage");
   const existing = input.requirement.id ? await db.regulatoryRequirement.findUnique({ where: { id: input.requirement.id } }) : null;
   const source = await db.regulatorySource.findUnique({ where: { id: input.requirement.regulatorySourceId } });
@@ -52,6 +54,7 @@ export async function createApplicabilityRuleVersion(input: {
     effectiveTo?: Date | null;
   };
 }) {
+  assertNotLocalPreviewMutation({ userId: input.authz.userId });
   requireOrganizationAccess(input.authz, input.organizationId, "regulatory:rules:manage");
   const conditions = conditionSchema.parse(input.rule.conditions);
   const requirement = await db.regulatoryRequirement.findUnique({ where: { id: input.rule.regulatoryRequirementId } });

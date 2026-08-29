@@ -1,9 +1,13 @@
 import { requirePageSession, getAuthorizationContext } from "@/server/auth/session";
 import { getRegulatoryWorkspace } from "@/server/regulatory/service";
 import { RegulatoryProfileWorkspace } from "@/components/regulatory-profile-workspace";
+import { isLocalPreviewSession, LOCAL_PREVIEW_AIRPORT_ID, LOCAL_PREVIEW_ORGANIZATION_ID } from "@/server/local-preview";
 
 export default async function RegulatoryProfilePage() {
   const session = await requirePageSession();
+  if (isLocalPreviewSession(session)) {
+    return <RegulatoryProfileWorkspace previewMode initial={{ airport: { id: LOCAL_PREVIEW_AIRPORT_ID, name: "Aeródromo de visualização local", organizationId: LOCAL_PREVIEW_ORGANIZATION_ID }, profiles: [], assessments: [] }} />;
+  }
   if (!session.activeOrganizationId || !session.activeAirportId) {
     return <><p className="eyebrow">Configurações</p><h1>Perfil Regulatório</h1><div className="card"><p className="muted">Selecione uma organização e um aeródromo no cabeçalho para acessar o perfil regulatório.</p></div></>;
   }

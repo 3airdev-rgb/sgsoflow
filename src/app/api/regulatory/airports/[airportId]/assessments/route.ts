@@ -3,12 +3,14 @@ import { getAuthorizationContext, requireSession } from "@/server/auth/session";
 import { errorResponse } from "@/server/errors";
 import { executeRegulatoryAssessment, getRegulatoryWorkspace } from "@/server/regulatory/service";
 import { regulatoryAssessmentSchema, regulatoryScopeSchema } from "@/server/validation/schemas";
+import { assertLocalPreviewReadScope, assertNotLocalPreviewMutation } from "@/server/local-preview";
 
 export async function GET(request: Request, { params }: { params: Promise<{ airportId: string }> }) {
   try {
     const { airportId } = await params;
     const { organizationId } = regulatoryScopeSchema.parse(Object.fromEntries(new URL(request.url).searchParams));
     const session = await requireSession();
+    if (assertLocalPreviewReadScope(session, organizationId, airportId)) return NextResponse.json({ assessments: [] });
     const authz = await getAuthorizationContext(session.userId);
     const workspace = await getRegulatoryWorkspace({ authz, organizationId, airportId });
     return NextResponse.json({ assessments: workspace.assessments });
@@ -17,9 +19,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ airp
 
 export async function POST(request: Request, { params }: { params: Promise<{ airportId: string }> }) {
   try {
+    const session = await requireSession();
+    assertNotLocalPreviewMutation(session);
     const { airportId } = await params;
     const { organizationId, regulatoryProfileId } = regulatoryAssessmentSchema.parse(await request.json());
-    const session = await requireSession();
     const authz = await getAuthorizationContext(session.userId);
     const assessment = await executeRegulatoryAssessment({ authz, organizationId, airportId, profileId: regulatoryProfileId, userId: session.userId });
     return NextResponse.json({ assessment }, { status: 201 });

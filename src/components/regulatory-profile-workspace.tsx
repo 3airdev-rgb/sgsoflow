@@ -20,7 +20,7 @@ const regimeLabels: Record<string, string> = {
 };
 const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: value.includes("T00:00:00") ? undefined : "short" }).format(new Date(value));
 
-export function RegulatoryProfileWorkspace({ initial }: { initial: Workspace }) {
+export function RegulatoryProfileWorkspace({ initial, previewMode = false }: { initial: Workspace; previewMode?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const current = initial.profiles.find((profile) => profile.status === "ACTIVE");
@@ -58,6 +58,7 @@ export function RegulatoryProfileWorkspace({ initial }: { initial: Workspace }) 
 
   return <div className="stack">
     <div><p className="eyebrow">Configurações</p><h1>Perfil Regulatório</h1><p className="muted">{initial.airport.name}</p></div>
+    {previewMode && <p className="preview-notice">Somente visualização: perfis e avaliações dependem do PostgreSQL.</p>}
     {error && <p className="error" role="alert">{error}</p>}
     <section className="card">
       <h2>Perfil vigente</h2>
@@ -85,7 +86,7 @@ export function RegulatoryProfileWorkspace({ initial }: { initial: Workspace }) 
           <label className="checkbox"><input name="hasPGSO" type="checkbox" /> Possui PGSO</label>
         </div>
         <label>Notas regulatórias<textarea name="regulatoryNotes" maxLength={4000} /></label>
-        <div className="actions"><button disabled={busy}>Salvar como rascunho</button></div>
+        <div className="actions"><button disabled={busy || previewMode}>Salvar como rascunho</button></div>
       </form>
     </section>
     <section className="card">
@@ -96,7 +97,7 @@ export function RegulatoryProfileWorkspace({ initial }: { initial: Workspace }) 
     </section>
     <section className="card">
       <h2>Avaliação de aplicabilidade</h2>
-      <div className="actions"><button disabled={busy || !current} onClick={() => current && void request(`/api/regulatory/airports/${initial.airport.id}/assessments`, { organizationId: initial.airport.organizationId, regulatoryProfileId: current.id })}>Executar avaliação do perfil vigente</button></div>
+      <div className="actions"><button disabled={busy || !current || previewMode} onClick={() => current && void request(`/api/regulatory/airports/${initial.airport.id}/assessments`, { organizationId: initial.airport.organizationId, regulatoryProfileId: current.id })}>Executar avaliação do perfil vigente</button></div>
       {latestAssessment && <div className="stack">
         <div className="result"><p className="eyebrow">Regime identificado</p><h2>{latestAssessment.overallResult === "NOT_APPLICABLE" ? "NENHUM REGIME DA SUBPARTE C APLICÁVEL" : regimeLabels[latestAssessment.managementRegime] ?? latestAssessment.managementRegime}</h2><p>{latestAssessment.rationale}</p></div>
         <p className="muted">Avaliação: {formatDate(latestAssessment.evaluatedAt)} · Perfil v{latestAssessment.profileVersion} · Motor v{latestAssessment.engineVersion}</p>

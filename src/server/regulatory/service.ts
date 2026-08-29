@@ -5,6 +5,7 @@ import { requireAirportAccess, type AuthorizationContext } from "@/server/author
 import { ConflictError, NotFoundError } from "@/server/errors";
 import { evaluateRegulatoryApplicability } from "./engine";
 import { assertValidProfilePeriod } from "./profile-versioning";
+import { assertNotLocalPreviewMutation } from "@/server/local-preview";
 
 type ProfileInput = {
   effectiveFrom: Date;
@@ -42,6 +43,7 @@ export async function getRegulatoryWorkspace(input: { authz: AuthorizationContex
 }
 
 export async function createRegulatoryProfile(input: { authz: AuthorizationContext; organizationId: string; airportId: string; userId: string; profile: ProfileInput }) {
+  assertNotLocalPreviewMutation({ userId: input.authz.userId });
   await requireScopedAirport(input.authz, input.organizationId, input.airportId, "regulatory:profile:manage");
   assertValidProfilePeriod(input.profile.effectiveFrom, input.profile.effectiveTo ?? null);
   return db.$transaction(async (tx) => {
@@ -60,6 +62,7 @@ export async function createRegulatoryProfile(input: { authz: AuthorizationConte
 }
 
 export async function activateRegulatoryProfile(input: { authz: AuthorizationContext; organizationId: string; airportId: string; profileId: string; userId: string }) {
+  assertNotLocalPreviewMutation({ userId: input.authz.userId });
   await requireScopedAirport(input.authz, input.organizationId, input.airportId, "regulatory:profile:manage");
   const target = await db.regulatoryProfile.findFirst({ where: { id: input.profileId, airportId: input.airportId, airport: { organizationId: input.organizationId } } });
   if (!target) throw new NotFoundError("Perfil regulatório não encontrado no aeródromo informado.");
@@ -89,6 +92,7 @@ export async function activateRegulatoryProfile(input: { authz: AuthorizationCon
 }
 
 export async function executeRegulatoryAssessment(input: { authz: AuthorizationContext; organizationId: string; airportId: string; profileId: string; userId: string; evaluatedAt?: Date }) {
+  assertNotLocalPreviewMutation({ userId: input.authz.userId });
   await requireScopedAirport(input.authz, input.organizationId, input.airportId, "regulatory:assess");
   const evaluatedAt = input.evaluatedAt ?? new Date();
   const profile = await db.regulatoryProfile.findFirst({ where: { id: input.profileId, airportId: input.airportId, airport: { organizationId: input.organizationId } } });

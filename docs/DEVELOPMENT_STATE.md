@@ -30,6 +30,27 @@ A implementação e a auditoria normativa da Etapa 02 estão concluídas sobre a
 - **Pendente: validação integrada PostgreSQL de migration, seed, perfil, ativação, avaliação, histórico, triggers e Audit Log.**
 - **Pendente: E2E autenticado de Configurações → Perfil Regulatório → criação → ativação → avaliação.** O Chromium está funcional, mas o fluxo depende de PostgreSQL migrado e seedado.
 
+## LOCAL PREVIEW MODE — APROVADO
+
+**Status: Ferramenta permanente de desenvolvimento.**
+
+Características:
+
+- exclusivo de development;
+- exige `NODE_ENV === "development"`;
+- exige `LOCAL_PREVIEW_MODE === "true"`;
+- read-only;
+- sem PostgreSQL;
+- sem persistência;
+- sem Audit Log real;
+- bloqueio server-side de mutações;
+- não disponível em produção;
+- 52 testes aprovados.
+
+Toda futura rota ou serviço mutável deverá aplicar a política central de bloqueio de Local Preview e possuir teste de regressão correspondente.
+
+Consulte `docs/LOCAL_PREVIEW.md`.
+
 ## ETAPA 02 — IMPLEMENTADO
 
 - Perfil regulatório versionado por aeródromo, com estados `DRAFT`, `ACTIVE` e `SUPERSEDED`.
