@@ -1,8 +1,40 @@
 # Estado de desenvolvimento
 
-## ETAPA ATUAL: 03
+## ETAPA ATUAL: 04
 
 ## STATUS
+
+## ETAPA 04 — IMPLEMENTADA E VALIDADA ESTATICAMENTE
+
+**B — CONCLUÍDA COM VALIDAÇÃO EXTERNA POSTGRESQL PENDENTE.**
+
+Baseline utilizada: `a9ae1c99d8bd14643832a295ee3d11cb92b79caf` (`main` sincronizada com `origin/main` antes da implementação; as alterações documentais canônicas pendentes foram preservadas e incorporadas).
+
+### VALIDADO NA ETAPA 04
+
+- Política de Segurança Operacional controlada, estruturada e versionada por aeródromo.
+- Estados `DRAFT`, `UNDER_REVIEW`, `APPROVED`, `ACTIVE`, `SUPERSEDED` e `ARCHIVED`, sem hard delete e com conteúdo aprovado imutável.
+- Aprovação humana vinculada a designação regulamentar vigente e à autoridade `APPROVE_SAFETY_POLICY`; papel administrativo isolado não aprova.
+- Uma única versão ativa por aeródromo, supersession explícita e histórico temporal.
+- Revisão documentada sem reescrita da versão; alteração de conteúdo exige nova versão.
+- Comunicação com audiência, método, instante e referência obrigatória de evidência.
+- Objetivos gerenciais ligados à versão ativa, responsável, período, prazo, critério de medição, meta opcional e resultado observado; não são SPI, SPT ou ALoSP.
+- Multi-tenancy Organization → Airport aplicado no backend, em queries e FKs compostas.
+- Audit Log server-side em todas as mudanças de estado e registros relevantes.
+- Local Preview read-only preservado com bloqueio na rota e no serviço antes de Prisma/Audit Log.
+- POL-01 a POL-22 aprovados; Prisma validate, geração do client, lint, typecheck e build executados na validação final.
+
+### PENDENTE POR LIMITAÇÃO DO AMBIENTE
+
+- **Pendente: aplicação das migrations contra instância PostgreSQL real.**
+- Validação integrada da migration da Etapa 04, constraints, triggers, seed, workflow de aprovação, supersession, objetivos e Audit Log.
+- E2E autenticado completo da Política e Objetivos com banco migrado e seedado.
+
+### CHECKPOINT E IMUTABILIDADE DE MIGRATION
+
+- Migration incremental da Etapa 04: `20260831120000_stage_04_safety_policy_objectives`.
+- As migrations das Etapas 01, 02 e 03 permaneceram inalteradas.
+- A migration da Etapa 04 torna-se imutável após o checkpoint aprovado; correções futuras de schema deverão usar nova migration incremental.
 
 ## ETAPA 03 — APROVADA
 
@@ -104,6 +136,7 @@ Consulte `docs/LOCAL_PREVIEW.md`.
 - `20260828170000_stage_01_foundation`: fundação, sete tabelas e Audit Log append-only.
 - `20260828220000_stage_02_regulatory_engine`: seis entidades regulatórias, enums, FKs compostas, índices, unicidade de perfil ativo, constraints temporais e triggers de imutabilidade.
 - `20260829140000_stage_03_governance_authority`: funções, responsabilidades, designações, autoridades, matriz de autoridade, CSO, membros, constraints temporais e proteção histórica.
+- `20260831120000_stage_04_safety_policy_objectives`: política versionada, aprovação, revisão, comunicação, objetivos, FKs compostas, unicidade ativa e proteção de registros controlados.
 
 ## TESTES
 
@@ -113,6 +146,8 @@ Consulte `docs/LOCAL_PREVIEW.md`.
 - Resultado: 39/39 e 1/1 aprovados.
 - Etapa 03: GOV-01 a GOV-20 para autoridade, vigência, exclusividade, histórico, CSO, tenant, Audit Log e Local Preview.
 - Total atual: 89 testes unitários/integração isolada em 11 arquivos e 1 E2E estrutural.
+- Etapa 04: POL-01 a POL-22 para conteúdo, estados, autoridade, multi-tenancy, comunicação, objetivos e Local Preview.
+- Total após a Etapa 04: 111 testes unitários/integração isolada em 14 arquivos e 1 E2E estrutural.
 
 ## ETAPA 03 — AUDITORIA NORMATIVA FINAL
 
@@ -124,6 +159,15 @@ Consulte `docs/LOCAL_PREVIEW.md`.
 - Aplicabilidade da CSO derivada server-side do assessment; composição exige titulares regulamentares aplicáveis e aceita membros adicionais.
 - Nenhuma role técnica prova função regulamentar. Nenhuma conformidade operacional da CSO ou do MOPS é declarada.
 - Pendente: aplicação e testes da migration da Etapa 03 contra instância PostgreSQL real.
+
+## REVISÃO CANÔNICA DA MMRF — CONCLUÍDA
+
+- Estado pós-Etapa 03 consolidado documentalmente em `docs/MMRF_IMPLEMENTATION_STATUS.md` e normalizado em `docs/TRACEABILITY.md`.
+- Somente IDs MMRF confirmados são usados; prazo ANAC, prerrogativas do Safety Manager e guardas adicionais do Local Preview permanecem em seção complementar sem RF inventado.
+- RF-036 está `PARTIALLY_IMPLEMENTED`: regras e testes de domínio existem, mas a avaliação multi-aeródromo ainda não é consumida integralmente por API, UI ou workflow operacional.
+- Validação estática das três migrations está concluída; aplicação, seed, constraints, triggers e testes integrados em PostgreSQL real permanecem dependência externa conhecida.
+- Condição de preparação: `READY_WITH_KNOWN_EXTERNAL_DEPENDENCY`.
+- A implementação complementar da Etapa 04 foi concluída; RF-019 a RF-030 permanecem sem mapeamento individual até confirmação nominal da MMRF canônica.
 
 ## SEGURANÇA E INTEGRIDADE
 
@@ -152,6 +196,6 @@ Consulte `docs/LOCAL_PREVIEW.md`.
 
 ## CONTROLE DE ESCOPO
 
-Não foram implementados Política de Segurança Operacional, objetivos de Safety, MGSO, Safety Reporting, investigações, perigos, GRSO, matriz de risco, AISO, PESO, indicadores, relatórios, auditorias SGSO completas, reuniões/atas/decisões operacionais da CSO, PISOA, treinamentos, promoção, Management of Change, Compliance Matrix completa ou IA.
+Não foram implementados MGSO completo ou DMS genérico, investigações, perigos, GRSO, matriz de risco, AISO, SPI, SPT, ALoSP, PESO, indicadores operacionais, relatórios, auditorias SGSO completas, reuniões/atas/decisões operacionais da CSO, PISOA, treinamentos, promoção, Management of Change, Compliance Matrix completa ou IA.
 
-Não iniciar a Etapa 04 sem instrução explícita e sem revisão/checkpoint aprovado da Etapa 03.
+Não iniciar a Etapa 05 sem instrução explícita e sem revisão/checkpoint aprovado da Etapa 04.

@@ -99,6 +99,30 @@ enum CommitteeMemberType {
   ADDITIONAL_MEMBER
 }
 
+enum SafetyPolicyVersionStatus {
+  DRAFT
+  UNDER_REVIEW
+  APPROVED
+  ACTIVE
+  SUPERSEDED
+  ARCHIVED
+}
+
+enum SafetyPolicyReviewResult {
+  COMPLETE
+  INCOMPLETE
+  REQUIRES_REVIEW
+}
+
+enum SafetyObjectiveStatus {
+  DRAFT
+  ACTIVE
+  ACHIEVED
+  NOT_ACHIEVED
+  CANCELLED
+  SUPERSEDED
+}
+
 model User {
   id                            String                    @id @default(uuid()) @db.Uuid
   name                          String                    @db.VarChar(160)
@@ -118,6 +142,13 @@ model User {
   regulatoryDesignationsCreated RegulatoryDesignation[]   @relation("DesignationCreator")
   safetyCommitteesCreated       SafetyCommittee[]         @relation("SafetyCommitteeCreator")
   safetyCommitteeMemberships    SafetyCommitteeMember[]   @relation("SafetyCommitteeMemberUser")
+  safetyPoliciesCreated         SafetyPolicy[]             @relation("SafetyPolicyCreator")
+  safetyPolicyVersionsAuthored  SafetyPolicyVersion[]      @relation("SafetyPolicyVersionAuthor")
+  safetyPolicyApprovals         SafetyPolicyApproval[]     @relation("SafetyPolicyApprover")
+  safetyPolicyReviews           SafetyPolicyReview[]       @relation("SafetyPolicyReviewer")
+  safetyPolicyCommunications    SafetyPolicyCommunication[] @relation("SafetyPolicyCommunicationRecorder")
+  safetyObjectivesOwned         SafetyObjective[]          @relation("SafetyObjectiveOwner")
+  safetyObjectivesCreated       SafetyObjective[]          @relation("SafetyObjectiveCreator")
 
   @@map("users")
 }
@@ -160,6 +191,12 @@ model Airport {
   applicabilityAssessments ApplicabilityAssessment[]
   regulatoryDesignations   RegulatoryDesignation[]
   safetyCommittees         SafetyCommittee[]
+  safetyPolicy             SafetyPolicy?
+  safetyPolicyVersions     SafetyPolicyVersion[]
+  safetyPolicyApprovals    SafetyPolicyApproval[]
+  safetyPolicyReviews      SafetyPolicyReview[]
+  safetyPolicyCommunications SafetyPolicyCommunication[]
+  safetyObjectives         SafetyObjective[]
 
   @@unique([organizationId, icaoCode])
   @@unique([organizationId, iataCode])
@@ -423,6 +460,7 @@ model RegulatoryDesignation {
   creator              User                        @relation("DesignationCreator", fields: [createdBy], references: [id], onDelete: Restrict)
   reportsTo            RegulatoryDesignation?      @relation("DesignationReporting", fields: [reportsToDesignationId], references: [id], onDelete: Restrict)
   directReports        RegulatoryDesignation[]     @relation("DesignationReporting")
+  safetyPolicyApprovals SafetyPolicyApproval[]
 
   @@unique([id, airportId])
   @@index([airportId, status, effectiveFrom, effectiveTo])
@@ -521,4 +559,142 @@ model SafetyCommitteeMember {
   @@index([safetyCommitteeId, status, effectiveFrom, effectiveTo])
   @@index([airportId, userId, status])
   @@map("safety_committee_members")
+}
+
+model SafetyPolicy {
+  id         String                @id @default(uuid()) @db.Uuid
+  airportId  String                @unique @map("airport_id") @db.Uuid
+  createdBy  String                @map("created_by") @db.Uuid
+  createdAt  DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  airport    Airport               @relation(fields: [airportId], references: [id], onDelete: Restrict)
+  creator    User                  @relation("SafetyPolicyCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  versions   SafetyPolicyVersion[]
+
+  @@unique([id, airportId])
+  @@map("safety_policies")
+}
+
+model SafetyPolicyVersion {
+  id                               String                    @id @default(uuid()) @db.Uuid
+  safetyPolicyId                   String                    @map("safety_policy_id") @db.Uuid
+  airportId                        String                    @map("airport_id") @db.Uuid
+  version                          Int
+  status                           SafetyPolicyVersionStatus @default(DRAFT)
+  formalStatement                  String                    @map("formal_statement") @db.Text
+  organizationCommitments          String                    @map("organization_commitments") @db.Text
+  responsibilities                String                    @db.Text
+  resourceCommitment               String                    @map("resource_commitment") @db.Text
+  applicableRequirementsCommitment String                   @map("applicable_requirements_commitment") @db.Text
+  continuousImprovementCommitment  String                    @map("continuous_improvement_commitment") @db.Text
+  safetyReportingPrinciples        String?                   @map("safety_reporting_principles") @db.Text
+  effectiveFrom                    DateTime?                 @map("effective_from") @db.Date
+  effectiveTo                      DateTime?                 @map("effective_to") @db.Date
+  authoredBy                       String                    @map("authored_by") @db.Uuid
+  createdAt                        DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                        DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  safetyPolicy                     SafetyPolicy              @relation(fields: [safetyPolicyId, airportId], references: [id, airportId], onDelete: Restrict)
+  airport                          Airport                   @relation(fields: [airportId], references: [id], onDelete: Restrict)
+  author                           User                      @relation("SafetyPolicyVersionAuthor", fields: [authoredBy], references: [id], onDelete: Restrict)
+  approval                         SafetyPolicyApproval?
+  reviews                          SafetyPolicyReview[]
+  communications                   SafetyPolicyCommunication[]
+  objectives                       SafetyObjective[]
+
+  @@unique([safetyPolicyId, version])
+  @@unique([id, airportId])
+  @@index([airportId, status, effectiveFrom, effectiveTo])
+  @@map("safety_policy_versions")
+}
+
+model SafetyPolicyApproval {
+  id                      String                @id @default(uuid()) @db.Uuid
+  policyVersionId         String                @unique @map("policy_version_id") @db.Uuid
+  airportId               String                @map("airport_id") @db.Uuid
+  approvedBy              String                @map("approved_by") @db.Uuid
+  regulatoryDesignationId String                @map("regulatory_designation_id") @db.Uuid
+  authorityCode           String                @map("authority_code") @db.VarChar(100)
+  rationale               String                @db.Text
+  evidenceReference       String?               @map("evidence_reference") @db.VarChar(500)
+  approvedAt              DateTime              @map("approved_at") @db.Timestamptz(6)
+  createdAt               DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  policyVersion           SafetyPolicyVersion   @relation(fields: [policyVersionId, airportId], references: [id, airportId], onDelete: Restrict)
+  airport                 Airport               @relation(fields: [airportId], references: [id], onDelete: Restrict)
+  approver                User                  @relation("SafetyPolicyApprover", fields: [approvedBy], references: [id], onDelete: Restrict)
+  regulatoryDesignation   RegulatoryDesignation @relation(fields: [regulatoryDesignationId, airportId], references: [id, airportId], onDelete: Restrict)
+
+  @@unique([policyVersionId, airportId])
+  @@index([airportId, approvedAt])
+  @@map("safety_policy_approvals")
+}
+
+model SafetyPolicyReview {
+  id                String                   @id @default(uuid()) @db.Uuid
+  policyVersionId   String                   @map("policy_version_id") @db.Uuid
+  airportId         String                   @map("airport_id") @db.Uuid
+  reviewedBy        String                   @map("reviewed_by") @db.Uuid
+  reviewedAt        DateTime                 @map("reviewed_at") @db.Timestamptz(6)
+  nextReviewAt      DateTime?                @map("next_review_at") @db.Date
+  reason            String                   @db.Text
+  result            SafetyPolicyReviewResult
+  contentChanged    Boolean                  @default(false) @map("content_changed")
+  createdAt         DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  policyVersion     SafetyPolicyVersion      @relation(fields: [policyVersionId, airportId], references: [id, airportId], onDelete: Restrict)
+  airport           Airport                  @relation(fields: [airportId], references: [id], onDelete: Restrict)
+  reviewer          User                     @relation("SafetyPolicyReviewer", fields: [reviewedBy], references: [id], onDelete: Restrict)
+
+  @@index([airportId, reviewedAt])
+  @@index([policyVersionId, reviewedAt])
+  @@map("safety_policy_reviews")
+}
+
+model SafetyPolicyCommunication {
+  id                  String              @id @default(uuid()) @db.Uuid
+  policyVersionId     String              @map("policy_version_id") @db.Uuid
+  airportId           String              @map("airport_id") @db.Uuid
+  audienceScope       String              @map("audience_scope") @db.VarChar(300)
+  communicationMethod String              @map("communication_method") @db.VarChar(160)
+  communicatedAt      DateTime            @map("communicated_at") @db.Timestamptz(6)
+  evidenceReference   String              @map("evidence_reference") @db.VarChar(500)
+  recordedBy          String              @map("recorded_by") @db.Uuid
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  policyVersion       SafetyPolicyVersion @relation(fields: [policyVersionId, airportId], references: [id, airportId], onDelete: Restrict)
+  airport             Airport             @relation(fields: [airportId], references: [id], onDelete: Restrict)
+  recorder            User                @relation("SafetyPolicyCommunicationRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
+
+  @@index([airportId, communicatedAt])
+  @@index([policyVersionId, communicatedAt])
+  @@map("safety_policy_communications")
+}
+
+model SafetyObjective {
+  id               String                @id @default(uuid()) @db.Uuid
+  policyVersionId  String                @map("policy_version_id") @db.Uuid
+  airportId        String                @map("airport_id") @db.Uuid
+  ownerUserId      String                @map("owner_user_id") @db.Uuid
+  status           SafetyObjectiveStatus @default(DRAFT)
+  title            String                @db.VarChar(240)
+  description      String                @db.Text
+  rationale        String                @db.Text
+  intendedOutcome  String                @map("intended_outcome") @db.Text
+  measureCriterion String                @map("measure_criterion") @db.Text
+  targetValue      String?               @map("target_value") @db.VarChar(120)
+  unit             String?               @db.VarChar(80)
+  dueDate          DateTime              @map("due_date") @db.Date
+  effectiveFrom    DateTime              @map("effective_from") @db.Date
+  effectiveTo      DateTime?             @map("effective_to") @db.Date
+  observedResult   String?               @map("observed_result") @db.Text
+  createdBy        String                @map("created_by") @db.Uuid
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  policyVersion    SafetyPolicyVersion   @relation(fields: [policyVersionId, airportId], references: [id, airportId], onDelete: Restrict)
+  airport          Airport               @relation(fields: [airportId], references: [id], onDelete: Restrict)
+  owner            User                  @relation("SafetyObjectiveOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  creator          User                  @relation("SafetyObjectiveCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@unique([id, airportId])
+  @@index([airportId, status, dueDate])
+  @@index([policyVersionId, status])
+  @@index([ownerUserId, status])
+  @@map("safety_objectives")
 }

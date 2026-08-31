@@ -29,6 +29,7 @@ const governanceAuthoritySeed = [
   ["VIEW_REGULATORY_STRUCTURE", "Visualizar estrutura regulamentar", "Consulta da estrutura regulamentar e da matriz de autoridade."],
   ["DIRECT_ACCESS_ACCOUNTABLE_MANAGER", "Acesso direto ao Gestor Responsável", "Prerrogativa funcional do responsável pelo SGSO.", "RBAC 153.25(b)(1); IS 153.51-001A"],
   ["ACCESS_REQUIRED_SAFETY_DATA", "Acesso aos dados de segurança necessários", "Prerrogativa funcional do responsável pelo SGSO.", "RBAC 153.25(b)(2); IS 153.51-001A"],
+  ["APPROVE_SAFETY_POLICY", "Aprovar Política de Segurança Operacional", "Autoridade regulamentar para aprovar a versão controlada da Política de Segurança Operacional.", "RBAC 153.23 e 153.53(a); IS 153.51-001A"],
 ] as const;
 
 const publicAerodrome = { field: "aerodromeUse", operator: "EQ", value: "PUBLIC" } as const;
@@ -116,6 +117,7 @@ async function main() {
     ["SAFETY_MANAGER", "VIEW_SAFETY_GOVERNANCE"], ["SAFETY_MANAGER", "VIEW_REGULATORY_STRUCTURE"],
     ["ACCOUNTABLE_MANAGER", "MANAGE_REGULATORY_DESIGNATIONS"], ["SAFETY_MANAGER", "MANAGE_CSO"],
     ["SAFETY_MANAGER", "DIRECT_ACCESS_ACCOUNTABLE_MANAGER"], ["SAFETY_MANAGER", "ACCESS_REQUIRED_SAFETY_DATA"],
+    ["ACCOUNTABLE_MANAGER", "APPROVE_SAFETY_POLICY"],
   ] as const;
   for (const [index, [roleCode, authorityCode]] of mappings.entries()) {
     const regulatoryRoleId = roleIds.get(roleCode)!; const regulatoryAuthorityId = authorityIds.get(authorityCode)!;

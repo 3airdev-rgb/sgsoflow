@@ -59,3 +59,32 @@ export const safetyCommitteeMemberSchema = z.object({ ...governancePeriodFields,
   organizationId: z.uuid(), memberUserId: z.uuid(), roleInCommittee: z.string().trim().min(2).max(120), memberType: z.enum(["REQUIRED_MEMBER", "ADDITIONAL_MEMBER"]),
 }).refine(validGovernancePeriod, { path: ["effectiveTo"], message: "A vigência final deve ser posterior à inicial." });
 export const committeeMemberRevocationSchema = z.object({ organizationId: z.uuid(), effectiveTo: z.coerce.date() });
+
+export const safetyPolicyScopeSchema = z.object({ organizationId: z.uuid() });
+export const safetyPolicyVersionSchema = z.object({
+  organizationId: z.uuid(), safetyPolicyId: z.uuid().optional(),
+  formalStatement: z.string().trim().min(1).max(12000), organizationCommitments: z.string().trim().min(1).max(12000),
+  responsibilities: z.string().trim().min(1).max(12000), resourceCommitment: z.string().trim().min(1).max(12000),
+  applicableRequirementsCommitment: z.string().trim().min(1).max(12000), continuousImprovementCommitment: z.string().trim().min(1).max(12000),
+  safetyReportingPrinciples: z.string().trim().max(12000).nullable().optional(),
+});
+export const safetyPolicyApprovalSchema = z.object({ organizationId: z.uuid(), rationale: z.string().trim().min(2).max(4000), evidenceReference: z.string().trim().max(500).nullable().optional() });
+export const safetyPolicyActivationSchema = z.object({ organizationId: z.uuid(), effectiveFrom: z.coerce.date() });
+export const safetyPolicyReviewSchema = z.object({
+  organizationId: z.uuid(), reviewedAt: z.coerce.date(), nextReviewAt: z.coerce.date().nullable().optional(),
+  reason: z.string().trim().min(2).max(4000), result: z.enum(["COMPLETE", "INCOMPLETE", "REQUIRES_REVIEW"]), contentChanged: z.boolean().default(false),
+});
+export const safetyPolicyCommunicationSchema = z.object({
+  organizationId: z.uuid(), audienceScope: z.string().trim().min(2).max(300), communicationMethod: z.string().trim().min(2).max(160),
+  communicatedAt: z.coerce.date(), evidenceReference: z.string().trim().min(2).max(500),
+});
+export const safetyObjectiveSchema = z.object({
+  organizationId: z.uuid(), policyVersionId: z.uuid(), ownerUserId: z.uuid(), title: z.string().trim().min(2).max(240),
+  description: z.string().trim().min(2).max(12000), rationale: z.string().trim().min(2).max(12000), intendedOutcome: z.string().trim().min(2).max(12000),
+  measureCriterion: z.string().trim().min(2).max(12000), targetValue: z.string().trim().max(120).nullable().optional(), unit: z.string().trim().max(80).nullable().optional(),
+  dueDate: z.coerce.date(), effectiveFrom: z.coerce.date(), effectiveTo: z.coerce.date().nullable().optional(),
+}).superRefine((value, context) => {
+  if (value.dueDate < value.effectiveFrom) context.addIssue({ code: "custom", path: ["dueDate"], message: "O prazo não pode anteceder o início." });
+  if (value.effectiveTo && value.effectiveTo < value.effectiveFrom) context.addIssue({ code: "custom", path: ["effectiveTo"], message: "A vigência final não pode anteceder o início." });
+});
+export const safetyObjectiveStatusSchema = z.object({ organizationId: z.uuid(), status: z.enum(["ACTIVE", "ACHIEVED", "NOT_ACHIEVED", "CANCELLED", "SUPERSEDED"]), observedResult: z.string().trim().max(12000).nullable().optional() });

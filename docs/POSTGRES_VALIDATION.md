@@ -25,6 +25,7 @@ pnpm db:migrate
 1. `20260828170000_stage_01_foundation`;
 2. `20260828220000_stage_02_regulatory_engine`;
 3. `20260829140000_stage_03_governance_authority`.
+4. `20260831120000_stage_04_safety_policy_objectives`.
 
 ## 3. Verificar o estado
 
@@ -75,7 +76,7 @@ Em PowerShell:
 psql $env:DATABASE_URL -c "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;"
 ```
 
-Devem existir as tabelas da fundação e das Etapas 02 e 03, incluindo `regulatory_roles`, `regulatory_designations`, `regulatory_responsibilities`, `regulatory_authorities`, `regulatory_role_authorities`, `safety_committees` e `safety_committee_members`, além de `_prisma_migrations`. Confirme também as proteções append-only/imutáveis:
+Devem existir as tabelas da fundação e das Etapas 02 a 04, incluindo `regulatory_roles`, `regulatory_designations`, `regulatory_responsibilities`, `regulatory_authorities`, `regulatory_role_authorities`, `safety_committees`, `safety_committee_members`, `safety_policies`, `safety_policy_versions`, `safety_policy_approvals`, `safety_policy_reviews`, `safety_policy_communications` e `safety_objectives`, além de `_prisma_migrations`. Confirme também as proteções append-only/imutáveis:
 
 ```sql
 SELECT event_object_table, trigger_name
@@ -114,3 +115,19 @@ HAVING COUNT(*) > 1;
 ```
 
 A última consulta deve retornar zero linhas para funções configuradas como `SINGLE`. Valide criação, ativação, supersession, revogação, CSO e membros somente com dados descartáveis do ambiente de teste, conferindo os eventos correspondentes em `audit_logs`.
+
+### Etapa 04 — `20260831120000_stage_04_safety_policy_objectives`
+
+- Verificar FKs compostas `policy_version_id + airport_id`, checks temporais, evidência de comunicação e uma única versão `ACTIVE` por aeródromo.
+- Confirmar o seed de `APPROVE_SAFETY_POLICY` e seu mapeamento exclusivo para `ACCOUNTABLE_MANAGER`.
+- Validar com dados descartáveis: rascunho → revisão → aprovação pelo titular vigente → ativação → supersession, revisão sem mudança de conteúdo, comunicação com evidência e lifecycle de objetivos.
+- Confirmar que hard delete é rejeitado e que conteúdo aprovado não pode ser alterado diretamente.
+- Conferir no `audit_logs` os eventos `SAFETY_POLICY_*` e `SAFETY_OBJECTIVE_*`, com `organization_id` e `airport_id` corretos.
+
+```sql
+SELECT airport_id, COUNT(*) FROM safety_policy_versions WHERE status = 'ACTIVE' GROUP BY airport_id HAVING COUNT(*) > 1;
+SELECT code FROM regulatory_authorities WHERE code = 'APPROVE_SAFETY_POLICY';
+SELECT event_object_table, trigger_name FROM information_schema.triggers WHERE event_object_table IN ('safety_policies', 'safety_policy_versions', 'safety_policy_approvals', 'safety_policy_reviews', 'safety_policy_communications', 'safety_objectives') ORDER BY 1, 2;
+```
+
+A primeira consulta deve retornar zero linhas e a segunda exatamente uma linha.

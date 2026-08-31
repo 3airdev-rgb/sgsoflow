@@ -41,7 +41,7 @@ O catálogo inicial contém exclusivamente:
 
 `RegulatoryRoleAuthority` mapeia função para autoridade com vigência. O serviço `canPerformRegulatoryAction()` retorna `ALLOWED`, `DENIED` ou `REQUIRES_REVIEW`, sempre com justificativa. Uma decisão `ALLOWED` exige cumulativamente usuário, aeródromo, designação ativa, período vigente, função ativa, autoridade ativa e mapeamento vigente.
 
-As autoridades iniciais são estruturais: visualizar governança/estrutura, gerenciar designações e gerenciar CSO. Autoridades futuras como aprovar Política, AISO ou aceitar risco não são usadas por nenhum workflow nesta etapa.
+As autoridades da Etapa 03 são estruturais: visualizar governança/estrutura, gerenciar designações e gerenciar CSO. A Etapa 04 acrescenta `APPROVE_SAFETY_POLICY`, consumida exclusivamente pelo workflow de Política e condicionada a designação vigente de Gestor Responsável. Autoridades para AISO ou aceite de risco permanecem futuras.
 
 ## CSO
 
