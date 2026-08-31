@@ -32,3 +32,30 @@ export const regulatoryProfileSchema = z.object({
 
 export const regulatoryScopeSchema = z.object({ organizationId: z.uuid() });
 export const regulatoryAssessmentSchema = z.object({ organizationId: z.uuid(), regulatoryProfileId: z.uuid() });
+
+const governancePeriodFields = {
+  effectiveFrom: z.coerce.date(),
+  effectiveTo: z.coerce.date().nullable().optional(),
+};
+const validGovernancePeriod = <T extends { effectiveFrom: Date; effectiveTo?: Date | null }>(value: T) => !value.effectiveTo || value.effectiveTo >= value.effectiveFrom;
+
+export const designationSchema = z.object({ ...governancePeriodFields,
+  organizationId: z.uuid(), holderUserId: z.uuid(), regulatoryRoleId: z.uuid(),
+  designationDate: z.coerce.date(), designationReference: z.string().trim().max(200).nullable().optional(),
+  additionalPrerogatives: z.string().trim().max(4000).nullable().optional(), responsibilityLimits: z.string().trim().max(4000).nullable().optional(),
+  reportsToDesignationId: z.uuid().nullable().optional(), notes: z.string().trim().max(4000).nullable().optional(),
+}).refine(validGovernancePeriod, { path: ["effectiveTo"], message: "A vigência final deve ser posterior à inicial." });
+export const governanceScopeSchema = z.object({ organizationId: z.uuid() });
+export const designationRevocationSchema = z.object({ organizationId: z.uuid(), effectiveTo: z.coerce.date() });
+export const designationNotificationSchema = z.object({ organizationId: z.uuid(), notifiedAt: z.coerce.date(), evidence: z.string().trim().min(2).max(500) });
+export const safetyCommitteeSchema = z.object({ ...governancePeriodFields,
+  organizationId: z.uuid(), name: z.string().trim().min(2).max(200),
+}).refine(validGovernancePeriod, { path: ["effectiveTo"], message: "A vigência final deve ser posterior à inicial." });
+export const safetyCommitteeUpdateSchema = z.object({
+  organizationId: z.uuid(), name: z.string().trim().min(2).max(200).optional(), status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED"]).optional(),
+  effectiveTo: z.coerce.date().nullable().optional(),
+});
+export const safetyCommitteeMemberSchema = z.object({ ...governancePeriodFields,
+  organizationId: z.uuid(), memberUserId: z.uuid(), roleInCommittee: z.string().trim().min(2).max(120), memberType: z.enum(["REQUIRED_MEMBER", "ADDITIONAL_MEMBER"]),
+}).refine(validGovernancePeriod, { path: ["effectiveTo"], message: "A vigência final deve ser posterior à inicial." });
+export const committeeMemberRevocationSchema = z.object({ organizationId: z.uuid(), effectiveTo: z.coerce.date() });

@@ -1,6 +1,6 @@
-# SGSOFlow — Perfil regulatório e motor de aplicabilidade (Etapa 02)
+# SGSOFlow — Governança organizacional e autoridade regulamentar (Etapa 03)
 
-Micro SaaS multi-tenant para gerenciamento da segurança operacional de aeródromos brasileiros. Sobre a fundação aprovada da Etapa 01, esta entrega adiciona perfil regulatório versionado, catálogo normativo controlado, regras seguras e avaliações explicáveis. Nenhum processo funcional de SGSO/PGSO foi antecipado.
+Micro SaaS multi-tenant para gerenciamento da segurança operacional de aeródromos brasileiros. Sobre as baselines aprovadas, esta entrega adiciona funções regulamentares, designações temporais, CSO e uma matriz de autoridade separada das roles técnicas. Nenhum processo funcional de SGSO/PGSO ou workflow decisório futuro foi antecipado.
 
 ## Stack
 
@@ -42,6 +42,7 @@ pnpm test:e2e
 - `src/server/audit/`: gravação backend de eventos append-only.
 - `src/server/context/`: mudança transacional e auditada do contexto ativo.
 - `src/server/regulatory/`: motor, versionamento, catálogo e serviços regulatórios.
+- `src/server/governance/`: designações, histórico, CSO e serviço central de autoridade regulamentar.
 - `src/server/validation/`: contratos Zod.
 - `tests/`: testes unitários/integração isolada e E2E estrutural.
 - `docs/`: arquitetura e estado de desenvolvimento.
@@ -54,4 +55,4 @@ pnpm test:e2e
 
 As APIs nunca confiam no tenant vindo do cliente: recuperam a identidade pela sessão, constroem grants a partir das associações ativas e aplicam policies centrais. Consultas a aeródromos combinam IDs autorizados e `organizationId`, bloqueando enumeração/manipulação cross-tenant. Autenticação e autorização permanecem separadas. O campo `mfaEnrolledAt` é apenas um ponto de extensão; MFA não está implementado.
 
-Consulte [Motor regulatório](docs/REGULATORY_ENGINE.md), [Rastreabilidade](docs/TRACEABILITY.md), [Arquitetura](docs/ARCHITECTURE.md), [Validação PostgreSQL externa](docs/POSTGRES_VALIDATION.md) e [Estado do desenvolvimento](docs/DEVELOPMENT_STATE.md).
+Consulte [Governança e autoridade](docs/GOVERNANCE_AND_AUTHORITY.md), [Motor regulatório](docs/REGULATORY_ENGINE.md), [Rastreabilidade](docs/TRACEABILITY.md), [Arquitetura](docs/ARCHITECTURE.md), [Validação PostgreSQL externa](docs/POSTGRES_VALIDATION.md) e [Estado do desenvolvimento](docs/DEVELOPMENT_STATE.md).

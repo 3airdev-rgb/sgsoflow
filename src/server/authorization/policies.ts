@@ -6,13 +6,14 @@ export type OrganizationGrant = { organizationId: string; role: SystemRole; airp
 export type AuthorizationContext = { userId: string; organizations: OrganizationGrant[] };
 export type Permission =
   | "organization:read" | "organization:manage" | "airport:read" | "airport:manage" | "context:switch"
-  | "regulatory:read" | "regulatory:profile:manage" | "regulatory:rules:manage" | "regulatory:assess";
+  | "regulatory:read" | "regulatory:profile:manage" | "regulatory:rules:manage" | "regulatory:assess"
+  | "governance:read" | "governance:manage";
 
 const rolePermissions: Record<SystemRole, ReadonlySet<Permission>> = {
-  SYSTEM_ADMIN: new Set(["organization:read", "organization:manage", "airport:read", "airport:manage", "context:switch", "regulatory:read", "regulatory:profile:manage", "regulatory:rules:manage", "regulatory:assess"]),
-  ORGANIZATION_ADMIN: new Set(["organization:read", "organization:manage", "airport:read", "airport:manage", "context:switch", "regulatory:read", "regulatory:profile:manage", "regulatory:assess"]),
-  AIRPORT_ADMIN: new Set(["organization:read", "airport:read", "airport:manage", "context:switch", "regulatory:read", "regulatory:profile:manage", "regulatory:assess"]),
-  USER: new Set(["organization:read", "airport:read", "context:switch", "regulatory:read"]),
+  SYSTEM_ADMIN: new Set(["organization:read", "organization:manage", "airport:read", "airport:manage", "context:switch", "regulatory:read", "regulatory:profile:manage", "regulatory:rules:manage", "regulatory:assess", "governance:read", "governance:manage"]),
+  ORGANIZATION_ADMIN: new Set(["organization:read", "organization:manage", "airport:read", "airport:manage", "context:switch", "regulatory:read", "regulatory:profile:manage", "regulatory:assess", "governance:read", "governance:manage"]),
+  AIRPORT_ADMIN: new Set(["organization:read", "airport:read", "airport:manage", "context:switch", "regulatory:read", "regulatory:profile:manage", "regulatory:assess", "governance:read", "governance:manage"]),
+  USER: new Set(["organization:read", "airport:read", "context:switch", "regulatory:read", "governance:read"]),
 };
 
 export function requireOrganizationAccess(ctx: AuthorizationContext, organizationId: string, permission: Permission = "organization:read") {

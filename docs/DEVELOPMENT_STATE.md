@@ -1,8 +1,45 @@
 # Estado de desenvolvimento
 
-## ETAPA ATUAL: 02
+## ETAPA ATUAL: 03
 
 ## STATUS
+
+## ETAPA 03 — APROVADA
+
+**B — CONCLUÍDA COM VALIDAÇÃO EXTERNA POSTGRESQL PENDENTE.**
+
+Baseline utilizada: `145d29193624c065d79c919c5f6f3584bb30dbbd` (`main` sincronizada com `origin/main` antes da implementação).
+
+### VALIDADO NA ETAPA 03
+
+- Separação entre `SystemRole`, `RegulatoryRole` e `RegulatoryAuthority`.
+- Catálogo inicial limitado a Gestor Responsável, responsável pelo SGSO, gestores operacionais e membro da CSO.
+- Designações com rascunho, ativação, supersession, revogação, vigência e histórico sem hard delete.
+- Funções exclusivas protegidas por serviço central e trigger PostgreSQL; acumulação distingue `ALLOWED`, `PROHIBITED`, `RECOMMENDATION`, `NOT_REQUIRED` e `REQUIRES_REVIEW` conforme classe e perfil.
+- Regulatory Authority Matrix depende de designação ativa, aeródromo, período e mapeamento vigente; role técnica isolada nunca concede autoridade.
+- Ato formal de designação com vigência, histórico, supersession, revogação, hierarquia, prerrogativas e limites.
+- Comunicação à ANAC controlada por prazo de 30 dias, estado e evidência humana, sem integração ou protocolo fictício.
+- CSO com aplicabilidade calculada server-side, composição vinculada a designações vigentes, membros obrigatórios/adicionais e vigência.
+- Regulatory Authority Matrix e Authority Service dependentes de designação ativa e vigente no aeródromo.
+- Multi-tenancy Organization → Airport aplicado a designações, CSO e membros.
+- Audit Log server-side para catálogos, designações, supersession/revogação, CSO e membros.
+- Local Preview read-only preservado, com bloqueio antes de autorização, serviço, Prisma e Audit Log.
+- GOV-01 a GOV-20 e GOV-AUD-01 a GOV-AUD-17 aprovados; total da suíte: 89 testes em 11 arquivos.
+- Lint, typecheck, build de produção, Prisma validate e geração completa do Prisma Client aprovados.
+- 1/1 E2E estrutural Playwright/Chromium aprovado; o navegador foi executado a partir de diretório temporário do ambiente.
+
+### PENDENTE POR LIMITAÇÃO DO AMBIENTE
+
+- **Pendente: aplicação das migrations contra instância PostgreSQL real.**
+- Validação integrada de constraints, triggers, seed, designações, CSO e Audit Log no PostgreSQL.
+- E2E autenticado completo da Estrutura Organizacional com banco migrado e seedado.
+
+### CHECKPOINT E IMUTABILIDADE DE MIGRATION
+
+- Baseline anterior: `145d29193624c065d79c919c5f6f3584bb30dbbd`.
+- Migration da Etapa 03: `20260829140000_stage_03_governance_authority`.
+- A migration da Etapa 03 nunca foi aplicada em PostgreSQL real e não integrou checkpoint anterior.
+- A partir do checkpoint aprovado da Etapa 03, `20260829140000_stage_03_governance_authority` é **IMUTÁVEL**. Toda alteração futura de schema deverá utilizar uma nova migration incremental.
 
 ## ETAPA 02 — APROVADA
 
@@ -66,6 +103,7 @@ Consulte `docs/LOCAL_PREVIEW.md`.
 
 - `20260828170000_stage_01_foundation`: fundação, sete tabelas e Audit Log append-only.
 - `20260828220000_stage_02_regulatory_engine`: seis entidades regulatórias, enums, FKs compostas, índices, unicidade de perfil ativo, constraints temporais e triggers de imutabilidade.
+- `20260829140000_stage_03_governance_authority`: funções, responsabilidades, designações, autoridades, matriz de autoridade, CSO, membros, constraints temporais e proteção histórica.
 
 ## TESTES
 
@@ -73,6 +111,19 @@ Consulte `docs/LOCAL_PREVIEW.md`.
 - Etapa 02: T01–T17 obrigatórios, condição insegura, precedência A–G, uso privativo e separação entre regime exigido e situação declarada.
 - Total atual: 39 testes unitários/integração isolada e 1 E2E estrutural.
 - Resultado: 39/39 e 1/1 aprovados.
+- Etapa 03: GOV-01 a GOV-20 para autoridade, vigência, exclusividade, histórico, CSO, tenant, Audit Log e Local Preview.
+- Total atual: 89 testes unitários/integração isolada em 11 arquivos e 1 E2E estrutural.
+
+## ETAPA 03 — AUDITORIA NORMATIVA FINAL
+
+**Status: IMPLEMENTADA E AUDITADA ESTATICAMENTE; validação PostgreSQL real pendente.**
+
+- GOV-AUD-01 a GOV-AUD-17 aprovados: acumulação por classe, recomendações não bloqueantes, prazo de 30 dias, notificação com evidência, aplicabilidade/composição da CSO e bloqueio do Local Preview.
+- Regras baseadas no RBAC 153 EMD 11, especialmente 153.15(a), 153.15(b), 153.15(e), Apêndice A, 153.23, 153.25 e 153.53(b)/(c).
+- Ato de designação, hierarquia, prerrogativas/limites e controle `PENDING`/`OVERDUE`/`SUBMITTED`/`NOT_APPLICABLE` registrados.
+- Aplicabilidade da CSO derivada server-side do assessment; composição exige titulares regulamentares aplicáveis e aceita membros adicionais.
+- Nenhuma role técnica prova função regulamentar. Nenhuma conformidade operacional da CSO ou do MOPS é declarada.
+- Pendente: aplicação e testes da migration da Etapa 03 contra instância PostgreSQL real.
 
 ## SEGURANÇA E INTEGRIDADE
 
@@ -101,6 +152,6 @@ Consulte `docs/LOCAL_PREVIEW.md`.
 
 ## CONTROLE DE ESCOPO
 
-Não foram implementados Política de Segurança Operacional, objetivos de Safety, MGSO, Safety Reporting, investigações, perigos, GRSO, matriz de risco, AISO, PESO, indicadores, relatórios, auditorias SGSO, CSO, PISOA, treinamentos, promoção, Management of Change, Compliance Matrix completa ou IA.
+Não foram implementados Política de Segurança Operacional, objetivos de Safety, MGSO, Safety Reporting, investigações, perigos, GRSO, matriz de risco, AISO, PESO, indicadores, relatórios, auditorias SGSO completas, reuniões/atas/decisões operacionais da CSO, PISOA, treinamentos, promoção, Management of Change, Compliance Matrix completa ou IA.
 
-Não iniciar a Etapa 03 sem instrução explícita e sem checkpoint aprovado da Etapa 02.
+Não iniciar a Etapa 04 sem instrução explícita e sem revisão/checkpoint aprovado da Etapa 03.

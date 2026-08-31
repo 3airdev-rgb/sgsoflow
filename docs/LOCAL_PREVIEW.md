@@ -49,7 +49,8 @@ Tentativas mutáveis retornam `403 Forbidden` com mensagem não sensível.
 - Formulários são apenas estruturais e suas ações ficam desabilitadas.
 - O Regulatory Applicability Engine não é executado e nenhum resultado é mockado.
 - Migrations, seed, integração autenticada e Audit Log real continuam pendentes de PostgreSQL.
-- O modo permanece fora da baseline aprovada até revisão e decisão explícitas.
+- O modo é ferramenta permanente e aprovada de desenvolvimento, sem equivalência com validação integrada.
+- A Estrutura Organizacional usa registros explicitamente demonstrativos apenas para visualização; nenhum dado é persistido.
 
 ## Riscos conhecidos
 

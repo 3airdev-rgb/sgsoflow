@@ -14,6 +14,23 @@ const requirementSeed = [
   ["153.73", "Gerenciamento de aspectos críticos de segurança operacional", "Identifica a aplicabilidade do gerenciamento de aspectos críticos.", "CRITICAL_SAFETY_ASPECTS"],
 ] as const;
 
+const governanceRoleSeed = [
+  ["ACCOUNTABLE_MANAGER", "Gestor Responsável", "Titular da responsabilidade executiva regulamentar do aeródromo.", "SINGLE", "REQUIRES_REVIEW", "RBAC 153.15(a)(1) e 153.23"],
+  ["SAFETY_MANAGER", "Responsável pelo SGSO", "Responsável pela coordenação da segurança operacional.", "SINGLE", "REQUIRES_REVIEW", "RBAC 153.15(a)(2) e 153.25"],
+  ["OPERATIONS_MANAGER", "Gestor de Operações", "Responsável gerencial pela área de operações.", "SINGLE", "REQUIRES_REVIEW", "RBAC 153.15(a)(3) e 153.27"],
+  ["MAINTENANCE_MANAGER", "Gestor de Manutenção", "Responsável gerencial pela área de manutenção.", "SINGLE", "REQUIRES_REVIEW", "RBAC 153.15(a)(4) e 153.29"],
+  ["EMERGENCY_RESPONSE_MANAGER", "Gestor de Resposta à Emergência", "Responsável gerencial pela preparação de resposta à emergência.", "SINGLE", "REQUIRES_REVIEW", "RBAC 153.15(a)(5) e 153.31"],
+  ["CSO_MEMBER", "Membro da CSO", "Participante designado para a Comissão de Segurança Operacional.", "MULTIPLE", "ALLOWED", "RBAC 153.53(c)(2); IS 153.51-001A"],
+] as const;
+const governanceAuthoritySeed = [
+  ["VIEW_SAFETY_GOVERNANCE", "Visualizar governança de segurança", "Consulta da estrutura de governança de segurança operacional."],
+  ["MANAGE_REGULATORY_DESIGNATIONS", "Gerenciar designações regulamentares", "Administração estrutural das designações regulamentares."],
+  ["MANAGE_CSO", "Gerenciar CSO", "Administração estrutural da Comissão de Segurança Operacional."],
+  ["VIEW_REGULATORY_STRUCTURE", "Visualizar estrutura regulamentar", "Consulta da estrutura regulamentar e da matriz de autoridade."],
+  ["DIRECT_ACCESS_ACCOUNTABLE_MANAGER", "Acesso direto ao Gestor Responsável", "Prerrogativa funcional do responsável pelo SGSO.", "RBAC 153.25(b)(1); IS 153.51-001A"],
+  ["ACCESS_REQUIRED_SAFETY_DATA", "Acesso aos dados de segurança necessários", "Prerrogativa funcional do responsável pelo SGSO.", "RBAC 153.25(b)(2); IS 153.51-001A"],
+] as const;
+
 const publicAerodrome = { field: "aerodromeUse", operator: "EQ", value: "PUBLIC" } as const;
 const subjectToSubpartC = { field: "isMilitarySharedAerodrome", operator: "EQ", value: false } as const;
 const noCertificate = { field: "hasOperationalCertificate", operator: "EQ", value: false } as const;
@@ -74,6 +91,37 @@ async function main() {
         rationaleTemplate,
         effectiveFrom: EFFECTIVE_FROM,
       },
+    });
+  }
+  const roleIds = new Map<string, string>();
+  for (const [index, [code, name, description, holderMultiplicity, accumulationPolicy, sourceReference]] of governanceRoleSeed.entries()) {
+    const id = `40000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`;
+    roleIds.set(code, id);
+    await prisma.regulatoryRole.upsert({ where: { code }, update: { name, description, sourceReference, status: "ACTIVE", holderMultiplicity, accumulationPolicy }, create: { id, code, name, description, sourceReference, holderMultiplicity, accumulationPolicy } });
+  }
+  const authorityIds = new Map<string, string>();
+  for (const [index, [code, name, description, sourceReference]] of governanceAuthoritySeed.entries()) {
+    const id = `50000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`;
+    authorityIds.set(code, id);
+    await prisma.regulatoryAuthority.upsert({ where: { code }, update: { name, description, sourceReference: sourceReference ?? null, status: "ACTIVE" }, create: { id, code, name, description, sourceReference: sourceReference ?? null } });
+  }
+  const accountableManagerId = roleIds.get("ACCOUNTABLE_MANAGER")!;
+  await prisma.regulatoryResponsibility.upsert({
+    where: { regulatoryRoleId_code: { regulatoryRoleId: accountableManagerId, code: "ENSURE_RESOURCE_AVAILABILITY" } },
+    update: { title: "Garantir disponibilidade de recursos", description: "Responsabilidade técnica estrutural, sujeita à fonte normativa aplicável.", status: "ACTIVE" },
+    create: { regulatoryRoleId: accountableManagerId, code: "ENSURE_RESOURCE_AVAILABILITY", title: "Garantir disponibilidade de recursos", description: "Responsabilidade técnica estrutural, sujeita à fonte normativa aplicável." },
+  });
+  const mappings = [
+    ["ACCOUNTABLE_MANAGER", "VIEW_SAFETY_GOVERNANCE"], ["ACCOUNTABLE_MANAGER", "VIEW_REGULATORY_STRUCTURE"],
+    ["SAFETY_MANAGER", "VIEW_SAFETY_GOVERNANCE"], ["SAFETY_MANAGER", "VIEW_REGULATORY_STRUCTURE"],
+    ["ACCOUNTABLE_MANAGER", "MANAGE_REGULATORY_DESIGNATIONS"], ["SAFETY_MANAGER", "MANAGE_CSO"],
+    ["SAFETY_MANAGER", "DIRECT_ACCESS_ACCOUNTABLE_MANAGER"], ["SAFETY_MANAGER", "ACCESS_REQUIRED_SAFETY_DATA"],
+  ] as const;
+  for (const [index, [roleCode, authorityCode]] of mappings.entries()) {
+    const regulatoryRoleId = roleIds.get(roleCode)!; const regulatoryAuthorityId = authorityIds.get(authorityCode)!;
+    await prisma.regulatoryRoleAuthority.upsert({
+      where: { regulatoryRoleId_regulatoryAuthorityId_effectiveFrom: { regulatoryRoleId, regulatoryAuthorityId, effectiveFrom: EFFECTIVE_FROM } }, update: { status: "ACTIVE" },
+      create: { id: `60000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`, regulatoryRoleId, regulatoryAuthorityId, effectiveFrom: EFFECTIVE_FROM },
     });
   }
   await prisma.auditLog.create({ data: { userId: user.id, organizationId: organization.id, airportId: airport.id, action: "DEVELOPMENT_SEED_APPLIED", entityType: "System", metadata: { environment: "local", regulatorySource: "RBAC 153 EMD 11", requirements: requirementSeed.length } } });

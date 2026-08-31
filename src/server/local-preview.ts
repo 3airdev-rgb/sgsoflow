@@ -48,7 +48,9 @@ export function isLocalPreviewSession(session: { id: string }) {
 
 export const LOCAL_PREVIEW_WRITE_MESSAGE = "Operações de escrita estão desabilitadas no modo de visualização local.";
 
-export function assertNotLocalPreviewMutation(actor: { id?: string; userId: string }) {
+export type LocalPreviewAwareActor = { id?: string; userId: string };
+
+export function assertNotLocalPreviewMutation(actor: LocalPreviewAwareActor) {
   const previewActor = actor.id === "local-preview-session" || actor.userId === LOCAL_PREVIEW_USER_ID;
   if (isLocalPreviewEnabled() && previewActor) throw new ForbiddenError(LOCAL_PREVIEW_WRITE_MESSAGE);
 }
